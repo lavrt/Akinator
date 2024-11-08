@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #define FCLOSE(ptr_) \
     do { fclose(ptr_); ptr_ = NULL; } while (0)
@@ -18,19 +19,49 @@ void dump(tNode* root);
 void treeTraversal(tNode* node, FILE* dumpFile);
 void treeTraversalWithArrows(tNode* node, FILE* dumpFile);
 
+void addNode(tNode* node, int value);
+void insert(tNode* node, int value);
+
 int main()
 {
-    tNode node_10 = { 10, 0, 0 };
-    tNode node_66 = { 66, 0, 0 };
-    tNode node_65 = { 65, 0, &node_66 };
-    tNode node_80 = { 80, 0, 0 };
-    tNode node_30 = { 30, &node_10, 0 };
-    tNode node_70 = { 70, &node_65, &node_80 };
-    tNode node_50 = { 50, &node_30, &node_70 };
+    tNode root = {50}; // FIXME а если не инициализирован?
+    insert(&root, 30);
+    insert(&root, 10);
+    insert(&root, 70);
+    insert(&root, 65);
+    insert(&root, 66);
+    insert(&root, 80);
 
-    dump(&node_50);
+    dump(&root);
 
     return 0;
+}
+
+void insert(tNode* node, int value)
+{
+    if (value < node->data)
+    {
+        (node->left) ? insert(node->left, value)
+                     : addNode(node, value);
+    }
+    else
+    {
+        (node->right) ? insert(node->right, value)
+                      : addNode(node, value);
+    }
+}
+
+void addNode(tNode* node, int value)
+{
+    tNode* newNode = (tNode*)calloc(1, sizeof(tNode));
+    assert(newNode);
+
+    newNode->data = value;
+    newNode->left = NULL;
+    newNode->right = NULL;
+
+    (value < node->data) ? node->left = newNode
+                         : node->right = newNode;
 }
 
 void dump(tNode* root)
@@ -57,13 +88,11 @@ void dump(tNode* root)
 void treeTraversal(tNode* node, FILE* dumpFile)
 {
     assert(dumpFile);
-
     if (!node) return;
 
     static size_t rank = 0;
-
-    fprintf(dumpFile, "    node_%p [rank=%lu,label=\" {ptr: %p | data: %d | {left: %p | right: %p}} \"];\n", node, rank, node, node->data, node->left, node->right);
-
+    fprintf(dumpFile, "    node_%p [rank=%lu,label=\" {ptr: %p | data: %d | {left: %p | right: %p}} \"];\n",
+            node, rank, node, node->data, node->left, node->right);
     if (node->left)
     {
         rank++;
@@ -82,7 +111,6 @@ void treeTraversalWithArrows(tNode* node, FILE* dumpFile)
     if (!node) return;
 
     static int flag = 0;
-
     if (node->left)
     {
         (flag++) ? fprintf(dumpFile, "-> node_%p ", node->left)
