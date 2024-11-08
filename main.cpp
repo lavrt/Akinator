@@ -85,28 +85,14 @@ void treeTraversalWithArrows(tNode* node, FILE* dumpFile)
 
     if (node->left)
     {
-        if (flag)
-        {
-            fprintf(dumpFile, "-> node_%p ", node->left);
-        }
-        else
-        {
-            fprintf(dumpFile, "    node_%p -> node_%p ", node, node->left);
-        }
-        flag = 1;
+        (flag++) ? fprintf(dumpFile, "-> node_%p ", node->left)
+                 : fprintf(dumpFile, "    node_%p -> node_%p ", node, node->left);
         treeTraversalWithArrows(node->left, dumpFile);
     }
     if (node->right)
     {
-        if (flag)
-        {
-            fprintf(dumpFile, "-> node_%p ", node->right);
-        }
-        else
-        {
-            fprintf(dumpFile, "    node_%p -> node_%p ", node, node->right);
-        }
-        flag = 1;
+        (flag++) ? fprintf(dumpFile, "-> node_%p ", node->right)
+                 : fprintf(dumpFile, "    node_%p -> node_%p ", node, node->right);
         treeTraversalWithArrows(node->right, dumpFile);
     }
     if (flag) { fprintf(dumpFile, ";\n"); }
