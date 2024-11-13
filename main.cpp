@@ -27,6 +27,8 @@ void dump(tNode* root);
 void dumpTreeTraversal(tNode* node, FILE* dumpFile);
 void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile);
 void runAkinator(tNode* node);
+void saveDatabase(tNode* root);
+int databaseEntry(tNode* node, FILE* dataBase);
 
 int main()
 {
@@ -39,6 +41,7 @@ int main()
     runAkinator(root);
 
     dump(root);
+    saveDatabase(root);
 
     treeDtor(root);
 
@@ -112,7 +115,11 @@ void runAkinator(tNode* node)
             strcpy(node->right->data, node->data);
             strcpy(node->left->data, correctAnswer);
             strcpy(node->data, distinctiveFeature);
-            node->data[strlen(node->data)] = '?';
+            if (strlen(node->data) + 2 <= kMaxDataSize)
+            {
+                node->data[strlen(correctAnswer)] = '?';
+                node->data[strlen(correctAnswer) + 1] = '\0';
+            }
 
             printf("I remember, now you can't fool me!\n");
         }
@@ -183,4 +190,57 @@ void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile)
     }
     if (flag) { fprintf(dumpFile, ";\n"); }
     flag = 0;
+}
+
+void saveDatabase(tNode* root)
+{
+    FILE* dataBase = fopen("dataBase.txt", "w");
+    assert(dataBase);
+
+    int depthOfRightmostPath = databaseEntry(root, dataBase);
+
+    for (int i = 0; i < depthOfRightmostPath - 1; i++)
+    {
+        for (int j = i; j < depthOfRightmostPath - 2; j++)
+        {
+            fprintf(dataBase, "    ");
+        }
+        fprintf(dataBase, "}\n");
+    }
+
+
+    FCLOSE(dataBase);
+}
+
+int databaseEntry(tNode* node, FILE* dataBase)
+{
+    assert(dataBase);
+    assert(node);
+
+    static int rank = 0;
+    static int depthOfRightmostPath = 0;
+
+    for (int i = 0; i < rank    ; i++) { fprintf(dataBase, "    "); } fprintf(dataBase, "{\n");
+    for (int i = 0; i < rank + 1; i++) { fprintf(dataBase, "    "); }
+
+    fprintf(dataBase, "%s\n", node->data);
+
+    for (int i = 0; i < rank; i++) { fprintf(dataBase, "    "); } fprintf(dataBase, "}\n");
+
+    if (node->left)
+    {
+        rank++;
+        depthOfRightmostPath = 0;
+        databaseEntry(node->left, dataBase);
+    }
+    if (node->right)
+    {
+        rank++;
+        depthOfRightmostPath = 0;
+        databaseEntry(node->right, dataBase);
+    }
+    depthOfRightmostPath++;
+    rank--;
+
+    return depthOfRightmostPath;
 }
