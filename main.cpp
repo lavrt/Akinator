@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define FCLOSE(ptr_) \
     do { fclose(ptr_); ptr_ = NULL; } while (0)
@@ -8,46 +9,47 @@
     do { free(ptr_); ptr_ = NULL; } while (0)
 #define $ fprintf(stderr, "%s:%d in function: %s\n", __FILE__, __LINE__, __func__);
 
+const char* const kDumpFileName = "dump.gv";
+const int kMaxDataSize = 64;
+const int kLengthOfTheResponceBuffer = 8;
+
 struct tNode
 {
-    int data;
+    char data[kMaxDataSize];
     tNode* left;
     tNode* right;
 };
 
-const char* const kDumpFileName = "dump.gv";
-
-tNode* treeCtor(int value);
+tNode* treeCtor(char* string);
 void treeDtor(tNode* node);
 tNode* createNode(void);
 void dump(tNode* root);
 void dumpTreeTraversal(tNode* node, FILE* dumpFile);
 void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile);
-
-void addNode(tNode* node, int value);
-void insert(tNode* node, int value);
+void runAkinator(tNode* node);
 
 int main()
 {
-    tNode* root = treeCtor(50);
-    insert(root, 30);
-    insert(root, 10);
-    insert(root, 70);
-    insert(root, 65);
-    insert(root, 66);
-    insert(root, 80);
+    tNode* root = treeCtor("Is it animal?");
+    root->left = createNode();
+    strcpy(root->left->data, "Poltorahska");
+    root->right = createNode();
+    strcpy(root->right->data, "Znamenskaya");
+
+    runAkinator(root);
 
     dump(root);
 
     treeDtor(root);
+
     return 0;
 }
 
-tNode* treeCtor(int value)
+tNode* treeCtor(char* string)
 {
     tNode* root = createNode();
 
-    root->data = value;
+    strcpy(root->data, string);
 
     return root;
 }
@@ -70,28 +72,52 @@ tNode* createNode(void)
     return node;
 }
 
-void insert(tNode* node, int value)
+void runAkinator(tNode* node)
 {
-    if (value < node->data)
+    assert(node);
+
+    char responceBuffer[kLengthOfTheResponceBuffer] = {};
+
+    if (node->left && node->right)
     {
-        (node->left) ? insert(node->left, value)
-                     : addNode(node, value);
+        printf("%s\n", node->data);
+        scanf("%s", responceBuffer);
+
+        if (!strcasecmp(responceBuffer, "yes")) { runAkinator(node->left); }
+        else if (!strcasecmp(responceBuffer, "no")) { runAkinator(node->right); }
     }
-    else
+    else if (!(node->left && node->right))
     {
-        (node->right) ? insert(node->right, value)
-                      : addNode(node, value);
+        printf("It's %s. Right?\n", node->data);
+        scanf("%s", responceBuffer);
+
+        if (!strcasecmp(responceBuffer, "yes"))
+        {
+            printf("Great, I guessed it again!\n");
+            return;
+        }
+        else if (!strcasecmp(responceBuffer, "no"))
+        {
+            char correctAnswer[kMaxDataSize] = {};
+            char distinctiveFeature[kMaxDataSize] = {};
+
+            printf("And who did you wish for?\n"); getchar();
+            scanf("%[^\n]", correctAnswer);
+
+            printf("How does %s differ from %s?\n%s is... ", correctAnswer, node->data, correctAnswer); getchar();
+            scanf("%[^\n]", distinctiveFeature);
+
+            node->left = createNode();
+            node->right = createNode();
+            strcpy(node->right->data, node->data);
+            strcpy(node->left->data, correctAnswer);
+            strcpy(node->data, distinctiveFeature);
+            node->data[strlen(node->data)] = '?';
+
+            printf("I remember, now you can't fool me!\n");
+        }
     }
-}
-
-void addNode(tNode* node, int value)
-{
-    tNode* newNode = createNode();
-
-    newNode->data = value;
-
-    (value < node->data) ? node->left = newNode
-                         : node->right = newNode;
+    else assert(0);
 }
 
 void dump(tNode* root)
@@ -113,6 +139,8 @@ void dump(tNode* root)
     fprintf(dumpFile, "}\n");
 
     FCLOSE(dumpFile);
+
+    system("dot dump.gv -Tpng -o dump.png");
 }
 
 void dumpTreeTraversal(tNode* node, FILE* dumpFile)
@@ -121,8 +149,8 @@ void dumpTreeTraversal(tNode* node, FILE* dumpFile)
     if (!node) return;
 
     static size_t rank = 0;
-    fprintf(dumpFile, "    node_%p [rank=%lu,label=\" {ptr: %p | data: %d | {left: %p | right: %p}} \"];\n",
-            node, rank, node, node->data, node->left, node->right);
+    fprintf(dumpFile, "    node_%p [rank=%lu,label=\" %s \"];\n",
+            node, rank, node->data);
     if (node->left)
     {
         rank++;
