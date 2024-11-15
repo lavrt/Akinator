@@ -12,6 +12,8 @@
 const char* const kDumpFileName = "dump.gv";
 const int kMaxDataSize = 64;
 const int kLengthOfTheResponceBuffer = 8;
+const char* const kYes = "да";
+const char* const kNo = "нет";
 
 struct tNode
 {
@@ -20,7 +22,6 @@ struct tNode
     tNode* right;
 };
 
-tNode* treeCtor(char* string);
 void treeDtor(tNode* node);
 tNode* createNode(void);
 void dump(tNode* root);
@@ -34,7 +35,7 @@ void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize
 
 int main()
 {
-    tNode* root = treeCtor("");
+    tNode* root = createNode();
     databaseFetch(root);
 
     runAkinator(root);
@@ -45,15 +46,6 @@ int main()
     treeDtor(root);
 
     return 0;
-}
-
-tNode* treeCtor(char* string)
-{
-    tNode* root = createNode();
-
-    strcpy(root->data, string);
-
-    return root;
 }
 
 void treeDtor(tNode* node)
@@ -85,28 +77,28 @@ void runAkinator(tNode* node)
         printf("%s\n", node->data);
         scanf("%s", responceBuffer);
 
-        if (!strcasecmp(responceBuffer, "yes")) { runAkinator(node->left); }
-        else if (!strcasecmp(responceBuffer, "no")) { runAkinator(node->right); }
+        if (!strcasecmp(responceBuffer, kYes)) { runAkinator(node->left); }
+        else if (!strcasecmp(responceBuffer, kNo)) { runAkinator(node->right); }
     }
     else if (!(node->left && node->right))
     {
-        printf("It's %s. Right?\n", node->data);
+        printf("Это %s. Верно?\n", node->data);
         scanf("%s", responceBuffer);
 
-        if (!strcasecmp(responceBuffer, "yes"))
+        if (!strcasecmp(responceBuffer, kYes))
         {
-            printf("Great, I guessed it again!\n");
+            printf("Отлично, я снова угадал!\n");
             return;
         }
-        else if (!strcasecmp(responceBuffer, "no"))
+        else if (!strcasecmp(responceBuffer, kNo))
         {
             char correctAnswer[kMaxDataSize] = {};
             char distinctiveFeature[kMaxDataSize] = {};
 
-            printf("And who did you wish for?\n"); getchar();
+            printf("И кого же ты загадал?\n"); getchar();
             scanf("%[^\n]", correctAnswer);
 
-            printf("How does %s differ from %s?\n%s is... ", correctAnswer, node->data, correctAnswer); getchar();
+            printf("Чем %s отличается от %s?\n%s... ", correctAnswer, node->data, correctAnswer); getchar();
             scanf("%[^\n]", distinctiveFeature);
 
             node->left = createNode();
@@ -121,7 +113,7 @@ void runAkinator(tNode* node)
                 node->data[strlen(distinctiveFeature) + 1] = '\0';
             }
 
-            printf("I remember, now you can't fool me!\n");
+            printf("Я запомнил, теперь ты меня не проведешь!\n");
         }
     }
     else assert(0);
@@ -152,13 +144,6 @@ void dump(tNode* root)
 
 void dumpTreeTraversal(tNode* node, FILE* dumpFile)
 {
-    // printf("%s", node->data);
-
-    for (int i = 0; i < 64; i++)
-    {
-        printf("%c", node->data[i]);
-    }
-
     assert(dumpFile);
     if (!node) return;
 
@@ -275,11 +260,11 @@ void databaseFetch(tNode* root)
     int64_t fileSize = ftello(database);
     fseek(database, 0, SEEK_SET);
 
-    char* dataArray = (char*)calloc(fileSize, sizeof(char));
+    char* dataArray = (char*)calloc((size_t)fileSize, sizeof(char));
     assert(dataArray);
-    fread(dataArray, sizeof(char), fileSize, database);
+    fread(dataArray, sizeof(char), (size_t)fileSize, database);
 
-    char* dataArrayClear = (char*)calloc(fileSize, sizeof(char));
+    char* dataArrayClear = (char*)calloc((size_t)fileSize, sizeof(char));
     assert(dataArrayClear);
 
     bool inWord = false;
@@ -335,98 +320,3 @@ void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize
     }
 }
 
-// {"animal?"{"poltorashka"}{"studying?"{"student in session"}{"student"}}}
-
-// {
-//     "animal?"
-//     {
-//         "poltorashka"
-//     }
-//     {
-//         "studying?"
-//         {
-//             "student in session"
-//         }
-//         {
-//             "student"
-//         }
-//     }
-// }
-
-
-
-//
-// {
-//     "животное?"
-//     {
-//         "1.5ка"
-//     }
-//     {
-//         "ведет матан?"
-//         {
-//             "знаменская"
-//         }
-//         {
-//             "ведет физос?"
-//             {
-//                 "овчос"
-//             }
-//             {
-//                 "комендант"
-//             }
-//         }
-//     }
-// }
-
-
-// int databaseEntry(tNode* node, FILE* database)
-// {
-//     assert(database);
-//     assert(node);
-//
-//     static int rank = 0;
-//     static int depthOfRightmostPath = 0;
-//
-//     for (int i = 0; i < rank; i++)
-//     {
-//         fprintf(database, "    ");
-//     }
-//     fprintf(database, "%s", node->data);
-//
-//     return depthOfRightmostPath;
-// }
-
-// int databaseEntry(tNode* node, FILE* database)
-// {
-//     assert(database);
-//     assert(node);
-//
-//     static int rank = 0;
-//     static int depthOfRightmostPath = 0;
-//
-//     for (int i = 0; i < rank; i++)
-//     {
-//         fprintf(database, "    ");
-//     }
-//
-//     fprintf(database, "\"%s\"\n", node->data);
-//
-//     if (node->left)
-//     {
-//         rank++;
-//         pos = LeftNode;
-//         depthOfRightmostPath = 0;
-//         databaseEntry(node->left, database);
-//     }
-//     if (node->right)
-//     {
-//         rank++;
-//         pos = RightNode;
-//         depthOfRightmostPath = 0;
-//         databaseEntry(node->right, database);
-//     }
-//     depthOfRightmostPath++;
-//     rank--;
-//
-//     return depthOfRightmostPath;
-// }
