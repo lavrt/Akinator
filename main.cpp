@@ -27,21 +27,20 @@ void dump(tNode* root);
 void dumpTreeTraversal(tNode* node, FILE* dumpFile);
 void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile);
 void runAkinator(tNode* node);
-void saveDatabase(tNode* root);
-int databaseEntry(tNode* node, FILE* dataBase);
+void databaseSave(tNode* root);
+int databaseEntry(tNode* node, FILE* database);
+void databaseFetch(tNode* root);
+void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize);
 
 int main()
 {
-    tNode* root = treeCtor("Is it animal?");
-    root->left = createNode();
-    strcpy(root->left->data, "Poltorahska");
-    root->right = createNode();
-    strcpy(root->right->data, "Znamenskaya");
+    tNode* root = treeCtor("");
+    databaseFetch(root);
 
-    runAkinator(root);
+    // runAkinator(root);
 
     dump(root);
-    saveDatabase(root);
+    // databaseSave(root);
 
     treeDtor(root);
 
@@ -156,7 +155,7 @@ void dumpTreeTraversal(tNode* node, FILE* dumpFile)
     if (!node) return;
 
     static size_t rank = 0;
-    fprintf(dumpFile, "    node_%p [rank=%lu,label=\" %s \"];\n",
+    fprintf(dumpFile, "    node_%p [rank=%lu,label=\"%s\"];\n",
             node, rank, node->data);
     if (node->left)
     {
@@ -173,6 +172,7 @@ void dumpTreeTraversal(tNode* node, FILE* dumpFile)
 
 void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile)
 {
+    assert(dumpFile);
     if (!node) return;
 
     static int flag = 0;
@@ -192,55 +192,170 @@ void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile)
     flag = 0;
 }
 
-void saveDatabase(tNode* root)
+void databaseSave(tNode* root)
 {
-    FILE* dataBase = fopen("dataBase.txt", "w");
-    assert(dataBase);
+    assert(root);
 
-    int depthOfRightmostPath = databaseEntry(root, dataBase);
+    FILE* database = fopen("database.txt", "w");
+    assert(database);
+
+    int depthOfRightmostPath = databaseEntry(root, database);
 
     for (int i = 0; i < depthOfRightmostPath - 1; i++)
     {
         for (int j = i; j < depthOfRightmostPath - 2; j++)
         {
-            fprintf(dataBase, "    ");
+            fprintf(database, "    ");
         }
-        fprintf(dataBase, "}\n");
+        fprintf(database, "}\n");
     }
 
-
-    FCLOSE(dataBase);
+    FCLOSE(database);
 }
 
-int databaseEntry(tNode* node, FILE* dataBase)
+int databaseEntry(tNode* node, FILE* database)
 {
-    assert(dataBase);
+    assert(database);
     assert(node);
 
     static int rank = 0;
     static int depthOfRightmostPath = 0;
 
-    for (int i = 0; i < rank    ; i++) { fprintf(dataBase, "    "); } fprintf(dataBase, "{\n");
-    for (int i = 0; i < rank + 1; i++) { fprintf(dataBase, "    "); }
+    for (int i = 0; i < rank    ; i++) { fprintf(database, "    "); } fprintf(database, "{\n");
+    for (int i = 0; i < rank + 1; i++) { fprintf(database, "    "); }
 
-    fprintf(dataBase, "%s\n", node->data);
+    fprintf(database, "\"%s\"\n", node->data);
 
-    for (int i = 0; i < rank; i++) { fprintf(dataBase, "    "); } fprintf(dataBase, "}\n");
+    for (int i = 0; i < rank; i++) { fprintf(database, "    "); } fprintf(database, "}\n");
 
     if (node->left)
     {
         rank++;
         depthOfRightmostPath = 0;
-        databaseEntry(node->left, dataBase);
+        databaseEntry(node->left, database);
     }
     if (node->right)
     {
         rank++;
         depthOfRightmostPath = 0;
-        databaseEntry(node->right, dataBase);
+        databaseEntry(node->right, database);
     }
     depthOfRightmostPath++;
     rank--;
 
     return depthOfRightmostPath;
 }
+
+void databaseFetch(tNode* root)
+{
+    assert(root);
+
+    FILE* database = fopen("database.txt", "r");
+    assert(database);
+
+    fseek(database, 0, SEEK_END);
+    int64_t fileSize = ftello(database);
+    fseek(database, 0, SEEK_SET);
+
+    char* dataArray = (char*)calloc(fileSize, sizeof(char));
+    assert(dataArray);
+    fread(dataArray, sizeof(char), fileSize, database);
+
+    char* dataArrayClear = (char*)calloc(fileSize, sizeof(char));
+    assert(dataArrayClear);
+
+    bool inWord = false;
+    int j = 0;
+    for (int i = 0; i < fileSize; i++)
+    {
+        if (dataArray[i] == '\n' || (dataArray[i] == ' ' && !inWord)) { continue; }
+        dataArrayClear[j++] = dataArray[i];
+        if (dataArray[i] == '"' && !inWord)
+        {
+            inWord = true;
+        }
+        else if (dataArray[i] == '"' && inWord)
+        {
+            inWord = false;
+        }
+    }
+
+    databaseRead(root, database, dataArrayClear, fileSize);
+
+    FCLOSE(database);
+    FREE(dataArray);
+    FREE(dataArrayClear);
+}
+
+void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize)
+{
+    assert(node);
+    assert(database);
+
+    char* ptr = 0;
+    static int status = 0;
+    (status++) ? ptr = strtok(NULL,      "{\"}")
+               : ptr = strtok(dataArray, "{\"}");
+
+    strcpy(node->data, ptr);
+
+    static int pos = 1;
+    while (pos < fileSize)
+    {
+        if (dataArray[pos++] == '{')
+        {
+            node->left = createNode();
+            node->right = createNode();
+            databaseRead(node->left, database, dataArray, fileSize);
+            databaseRead(node->right, database, dataArray, fileSize);
+        }
+        if (dataArray[pos - 1] == '}')
+        {
+            if (dataArray[pos] == '{') { pos++; }
+            return;
+        }
+    }
+}
+
+// {"animal?"{"poltorashka"}{"studying?"{"student in session"}{"student"}}}
+
+// {
+//     "animal?"
+//     {
+//         "poltorashka"
+//     }
+//     {
+//         "studying?"
+//         {
+//             "student in session"
+//         }
+//         {
+//             "student"
+//         }
+//     }
+// }
+
+
+
+//
+// {
+//     "животное?"
+//     {
+//         "1.5ка"
+//     }
+//     {
+//         "ведет матан?"
+//         {
+//             "знаменская"
+//         }
+//         {
+//             "ведет физос?"
+//             {
+//                 "овчос"
+//             }
+//             {
+//                 "комендант"
+//             }
+//         }
+//     }
+// }
