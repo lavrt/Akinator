@@ -28,7 +28,7 @@ void dumpTreeTraversal(tNode* node, FILE* dumpFile);
 void dumpTreeTraversalWithArrows(tNode* node, FILE* dumpFile);
 void runAkinator(tNode* node);
 void databaseSave(tNode* root);
-int databaseEntry(tNode* node, FILE* database);
+void databaseEntry(tNode* node, FILE* database);
 void databaseFetch(tNode* root);
 void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize);
 
@@ -37,10 +37,10 @@ int main()
     tNode* root = treeCtor("");
     databaseFetch(root);
 
-    // runAkinator(root);
+    runAkinator(root);
 
     dump(root);
-    // databaseSave(root);
+    databaseSave(root);
 
     treeDtor(root);
 
@@ -114,10 +114,11 @@ void runAkinator(tNode* node)
             strcpy(node->right->data, node->data);
             strcpy(node->left->data, correctAnswer);
             strcpy(node->data, distinctiveFeature);
+
             if (strlen(node->data) + 2 <= kMaxDataSize)
             {
-                node->data[strlen(correctAnswer)] = '?';
-                node->data[strlen(correctAnswer) + 1] = '\0';
+                node->data[strlen(distinctiveFeature)] = '?';
+                node->data[strlen(distinctiveFeature) + 1] = '\0';
             }
 
             printf("I remember, now you can't fool me!\n");
@@ -151,6 +152,13 @@ void dump(tNode* root)
 
 void dumpTreeTraversal(tNode* node, FILE* dumpFile)
 {
+    // printf("%s", node->data);
+
+    for (int i = 0; i < 64; i++)
+    {
+        printf("%c", node->data[i]);
+    }
+
     assert(dumpFile);
     if (!node) return;
 
@@ -199,21 +207,13 @@ void databaseSave(tNode* root)
     FILE* database = fopen("database.txt", "w");
     assert(database);
 
-    int depthOfRightmostPath = databaseEntry(root, database);
-
-    for (int i = 0; i < depthOfRightmostPath - 1; i++)
-    {
-        for (int j = i; j < depthOfRightmostPath - 2; j++)
-        {
-            fprintf(database, "    ");
-        }
-        fprintf(database, "}\n");
-    }
+    fprintf(database, "{\n");
+    databaseEntry(root, database);
 
     FCLOSE(database);
 }
 
-int databaseEntry(tNode* node, FILE* database)
+void databaseEntry(tNode* node, FILE* database)
 {
     assert(database);
     assert(node);
@@ -221,29 +221,47 @@ int databaseEntry(tNode* node, FILE* database)
     static int rank = 0;
     static int depthOfRightmostPath = 0;
 
-    for (int i = 0; i < rank    ; i++) { fprintf(database, "    "); } fprintf(database, "{\n");
-    for (int i = 0; i < rank + 1; i++) { fprintf(database, "    "); }
+    for (int i = 0; i < rank + 1; i++)
+    {
+        fprintf(database, "    ");
+    }
 
     fprintf(database, "\"%s\"\n", node->data);
-
-    for (int i = 0; i < rank; i++) { fprintf(database, "    "); } fprintf(database, "}\n");
 
     if (node->left)
     {
         rank++;
+
+        for (int i = 0; i < rank; i++)
+        {
+            fprintf(database, "    ");
+        }
+
+        fprintf(database, "{\n");
+
         depthOfRightmostPath = 0;
         databaseEntry(node->left, database);
     }
     if (node->right)
     {
         rank++;
+
+        for (int i = 0; i < rank; i++)
+        {
+            fprintf(database, "    ");
+        }
+        fprintf(database, "{\n");
+
         depthOfRightmostPath = 0;
         databaseEntry(node->right, database);
     }
     depthOfRightmostPath++;
+    for (int i = 0; i < rank; i++)
+    {
+        fprintf(database, "    ");
+    }
+    fprintf(database, "}\n");
     rank--;
-
-    return depthOfRightmostPath;
 }
 
 void databaseFetch(tNode* root)
@@ -358,4 +376,57 @@ void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize
 //             }
 //         }
 //     }
+// }
+
+
+// int databaseEntry(tNode* node, FILE* database)
+// {
+//     assert(database);
+//     assert(node);
+//
+//     static int rank = 0;
+//     static int depthOfRightmostPath = 0;
+//
+//     for (int i = 0; i < rank; i++)
+//     {
+//         fprintf(database, "    ");
+//     }
+//     fprintf(database, "%s", node->data);
+//
+//     return depthOfRightmostPath;
+// }
+
+// int databaseEntry(tNode* node, FILE* database)
+// {
+//     assert(database);
+//     assert(node);
+//
+//     static int rank = 0;
+//     static int depthOfRightmostPath = 0;
+//
+//     for (int i = 0; i < rank; i++)
+//     {
+//         fprintf(database, "    ");
+//     }
+//
+//     fprintf(database, "\"%s\"\n", node->data);
+//
+//     if (node->left)
+//     {
+//         rank++;
+//         pos = LeftNode;
+//         depthOfRightmostPath = 0;
+//         databaseEntry(node->left, database);
+//     }
+//     if (node->right)
+//     {
+//         rank++;
+//         pos = RightNode;
+//         depthOfRightmostPath = 0;
+//         databaseEntry(node->right, database);
+//     }
+//     depthOfRightmostPath++;
+//     rank--;
+//
+//     return depthOfRightmostPath;
 // }
