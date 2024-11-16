@@ -39,7 +39,7 @@ void runAkinator(tNode* node)
         if (!strcasecmp(responceBuffer, kYes)) { runAkinator(node->left); }
         else if (!strcasecmp(responceBuffer, kNo)) { runAkinator(node->right); }
     }
-    else if (!(node->left && node->right))
+    else if (!(node->left && node->right)) // FIXME вынести в функцию node->left && node->right
     {
         printf("Это %s. Верно?\n", node->data);
         scanf("%s", responceBuffer);

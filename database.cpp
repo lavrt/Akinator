@@ -12,7 +12,7 @@ void databaseSave(tNode* root)
 {
     assert(root);
 
-    FILE* database = fopen("database.txt", "w");
+    FILE* database = fopen("database.txt", "w"); // FIXME const char const
     assert(database);
 
     fprintf(database, "{\n");
@@ -76,15 +76,18 @@ void databaseFetch(tNode* root)
 {
     assert(root);
 
+    // FIXME database.txt вынести в константу
     FILE* database = fopen("database.txt", "r");
     assert(database);
 
+    // FIXME вынести в функцию
     fseek(database, 0, SEEK_END);
     int64_t fileSize = ftello(database);
     fseek(database, 0, SEEK_SET);
 
     char* dataArray = (char*)calloc((size_t)fileSize, sizeof(char));
     assert(dataArray);
+
     fread(dataArray, sizeof(char), (size_t)fileSize, database);
 
     char* dataArrayClear = (char*)calloc((size_t)fileSize, sizeof(char));
@@ -112,7 +115,7 @@ void databaseRead(tNode* node, FILE* database, char* dataArray, int64_t fileSize
     assert(node);
     assert(database);
 
-    char* ptr = 0;
+    char* ptr = NULL;
     static int status = 0;
     (status++) ? ptr = strtok(NULL,      "{\"}")
                : ptr = strtok(dataArray, "{\"}");
